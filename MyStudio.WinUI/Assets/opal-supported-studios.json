@@ -1,0 +1,347 @@
+{
+  "schemaVersion": 1,
+  "studios": [
+    {
+      "id": "034",
+      "address": "10.136.51.11",
+      "names": [
+        "034",
+        "34",
+        "Studio034",
+        "Studio34"
+      ],
+      "endpointProfile": "SonyXg77",
+      "preferredProtocol": "Sip",
+      "notesAr": "Sony XG77. الافتراضي SIP مع G.722. المكالمات والمشاركة مستقرة، لكن الصوت الراجع في الاختبارات شبه صامت؛ افحص ميكروفون الاستديو ومستواه. AAC متاح عبر H.323 للإرسال مع استقبال G.722.",
+      "notesEn": "Sony XG77. Default: SIP with G.722. Calls and sharing were stable, but incoming audio was nearly silent; check the studio microphone and its level. H.323 supports AAC-LC sending with G.722 reception.",
+      "protocols": [
+        {
+          "protocol": "H323",
+          "audioModes": [
+            {
+              "requestedCodec": "g722",
+              "negotiatedSend": "g722",
+              "negotiatedReceive": "g722",
+              "channels": 1,
+              "kbps": 64,
+              "stable": true,
+              "qualityNoteAr": "الصوت الراجع شبه صامت؛ افحص ميكروفون الاستديو ومستواه.",
+              "qualityNoteEn": "Incoming audio was nearly silent; check the studio microphone and its level."
+            },
+            {
+              "requestedCodec": "aac-lc",
+              "negotiatedSend": "aac-lc",
+              "negotiatedReceive": "g722",
+              "channels": 2,
+              "kbps": 192,
+              "stable": true,
+              "qualityNoteAr": "الصوت الراجع شبه صامت؛ افحص ميكروفون الاستديو ومستواه. الإرسال AAC-LC، والاستقبال G.722.",
+              "qualityNoteEn": "Incoming audio was nearly silent; check the studio microphone and its level. Send: AAC-LC; receive: G.722."
+            }
+          ]
+        },
+        {
+          "protocol": "Sip",
+          "audioModes": [
+            {
+              "requestedCodec": "g722",
+              "negotiatedSend": "g722",
+              "negotiatedReceive": "g722",
+              "channels": 1,
+              "kbps": 64,
+              "stable": true,
+              "qualityNoteAr": "الصوت الراجع شبه صامت؛ افحص ميكروفون الاستديو ومستواه.",
+              "qualityNoteEn": "Incoming audio was nearly silent; check the studio microphone and its level."
+            }
+          ]
+        }
+      ],
+      "testedAt": "2026-10-05"
+    },
+    {
+      "id": "032",
+      "address": "10.136.203.16",
+      "names": [
+        "032",
+        "32",
+        "Studio032",
+        "Studio32"
+      ],
+      "endpointProfile": "SonyXg80",
+      "preferredProtocol": "Sip",
+      "notesAr": "Sony XG80. الافتراضي SIP مع G.722. نجح SIP وH.323. تفعيل AAC في الاختبارات رجع إلى G.722 في البروتوكولين، لذلك أُوقف اختياره. انتظر انتهاء المكالمة على الجهاز قبل إعادة الاتصال.",
+      "notesEn": "Sony XG80. Default: SIP with G.722. SIP and H.323 passed. Requested AAC fell back to G.722 in both protocols and is unavailable. Let the endpoint finish clearing before redialing.",
+      "protocols": [
+        {
+          "protocol": "H323",
+          "audioModes": [
+            {
+              "requestedCodec": "g722",
+              "negotiatedSend": "g722",
+              "negotiatedReceive": "g722",
+              "channels": 1,
+              "kbps": 64,
+              "stable": true,
+              "qualityNoteAr": "",
+              "qualityNoteEn": ""
+            }
+          ]
+        },
+        {
+          "protocol": "Sip",
+          "audioModes": [
+            {
+              "requestedCodec": "g722",
+              "negotiatedSend": "g722",
+              "negotiatedReceive": "g722",
+              "channels": 1,
+              "kbps": 64,
+              "stable": true,
+              "qualityNoteAr": "",
+              "qualityNoteEn": ""
+            }
+          ]
+        }
+      ],
+      "testedAt": "2026-10-05"
+    },
+    {
+      "id": "018",
+      "address": "10.136.61.31",
+      "names": [
+        "018",
+        "18",
+        "Studio018",
+        "Studio18"
+      ],
+      "endpointProfile": "SonyXg80",
+      "preferredProtocol": "H323",
+      "notesAr": "Sony XG80، مثل استديو 032. الافتراضي H.323 مع G.722. نجح H.323؛ SIP لم يستجب في الاختبارات لذلك أُوقف اختياره. AAC-LC مجرب للإرسال عبر H.323 مع استقبال G.722.",
+      "notesEn": "Sony XG80, same model as studio 032. Default: H.323 with G.722. H.323 passed; SIP did not respond and is unavailable. H.323 AAC-LC sending with G.722 reception was verified.",
+      "protocols": [
+        {
+          "protocol": "H323",
+          "audioModes": [
+            {
+              "requestedCodec": "g722",
+              "negotiatedSend": "g722",
+              "negotiatedReceive": "g722",
+              "channels": 1,
+              "kbps": 64,
+              "stable": true,
+              "qualityNoteAr": "",
+              "qualityNoteEn": ""
+            },
+            {
+              "requestedCodec": "aac-lc",
+              "negotiatedSend": "aac-lc",
+              "negotiatedReceive": "g722",
+              "channels": 2,
+              "kbps": 192,
+              "stable": true,
+              "qualityNoteAr": "الإرسال AAC-LC، والاستقبال G.722.",
+              "qualityNoteEn": "Send: AAC-LC; receive: G.722."
+            }
+          ]
+        }
+      ],
+      "testedAt": "2026-10-05"
+    },
+    {
+      "id": "047",
+      "address": "10.136.51.25",
+      "names": [
+        "047",
+        "47",
+        "Studio047",
+        "Studio47",
+        "SX20"
+      ],
+      "endpointProfile": "Sx20",
+      "preferredProtocol": "Sip",
+      "notesAr": "Cisco SX20. الافتراضي SIP مع G.722 ودقة 1080p. نجح SIP وH.323. AAC-LD المجرب: SIP أحادي 64kbps، وH.323 ستيريو 128kbps، مع G.722 كبديل.",
+      "notesEn": "Cisco SX20. Default: SIP with G.722 and 1080p. SIP and H.323 passed. Verified AAC-LD: SIP mono 64kbps; H.323 stereo 128kbps, with G.722 fallback.",
+      "protocols": [
+        {
+          "protocol": "H323",
+          "audioModes": [
+            {
+              "requestedCodec": "g722",
+              "negotiatedSend": "g722",
+              "negotiatedReceive": "g722",
+              "channels": 1,
+              "kbps": 64,
+              "stable": true,
+              "qualityNoteAr": "",
+              "qualityNoteEn": ""
+            },
+            {
+              "requestedCodec": "aac-ld",
+              "negotiatedSend": "aac-ld",
+              "negotiatedReceive": "aac-ld",
+              "channels": 2,
+              "kbps": 128,
+              "stable": true,
+              "qualityNoteAr": "",
+              "qualityNoteEn": ""
+            }
+          ]
+        },
+        {
+          "protocol": "Sip",
+          "audioModes": [
+            {
+              "requestedCodec": "g722",
+              "negotiatedSend": "g722",
+              "negotiatedReceive": "g722",
+              "channels": 1,
+              "kbps": 64,
+              "stable": true,
+              "qualityNoteAr": "",
+              "qualityNoteEn": ""
+            },
+            {
+              "requestedCodec": "aac-ld",
+              "negotiatedSend": "aac-ld",
+              "negotiatedReceive": "aac-ld",
+              "channels": 1,
+              "kbps": 64,
+              "stable": true,
+              "qualityNoteAr": "",
+              "qualityNoteEn": ""
+            }
+          ]
+        }
+      ],
+      "testedAt": "2026-10-05"
+    },
+    {
+      "id": "ex90-18",
+      "address": "10.136.101.18",
+      "names": [
+        "EX90-18"
+      ],
+      "endpointProfile": "Ex90",
+      "preferredProtocol": "Sip",
+      "notesAr": "Cisco EX90. الافتراضي SIP مع G.722 ودقة 1080p. نجح SIP وH.323. AAC-LD المجرب: SIP أحادي 64kbps، وH.323 ستيريو 128kbps، مع G.722 كبديل.",
+      "notesEn": "Cisco EX90. Default: SIP with G.722 and 1080p. SIP and H.323 passed. Verified AAC-LD: SIP mono 64kbps; H.323 stereo 128kbps, with G.722 fallback.",
+      "protocols": [
+        {
+          "protocol": "H323",
+          "audioModes": [
+            {
+              "requestedCodec": "g722",
+              "negotiatedSend": "g722",
+              "negotiatedReceive": "g722",
+              "channels": 1,
+              "kbps": 64,
+              "stable": true,
+              "qualityNoteAr": "",
+              "qualityNoteEn": ""
+            },
+            {
+              "requestedCodec": "aac-ld",
+              "negotiatedSend": "aac-ld",
+              "negotiatedReceive": "aac-ld",
+              "channels": 2,
+              "kbps": 128,
+              "stable": true,
+              "qualityNoteAr": "",
+              "qualityNoteEn": ""
+            }
+          ]
+        },
+        {
+          "protocol": "Sip",
+          "audioModes": [
+            {
+              "requestedCodec": "g722",
+              "negotiatedSend": "g722",
+              "negotiatedReceive": "g722",
+              "channels": 1,
+              "kbps": 64,
+              "stable": true,
+              "qualityNoteAr": "",
+              "qualityNoteEn": ""
+            },
+            {
+              "requestedCodec": "aac-ld",
+              "negotiatedSend": "aac-ld",
+              "negotiatedReceive": "aac-ld",
+              "channels": 1,
+              "kbps": 64,
+              "stable": true,
+              "qualityNoteAr": "",
+              "qualityNoteEn": ""
+            }
+          ]
+        }
+      ],
+      "testedAt": "2026-10-05"
+    },
+    {
+      "id": "ex90-12",
+      "address": "10.136.101.12",
+      "names": [
+        "EX90-12"
+      ],
+      "endpointProfile": "Ex90",
+      "preferredProtocol": "Sip",
+      "notesAr": "Cisco EX90. الافتراضي SIP مع G.722 ودقة 1080p. نجح SIP وH.323. AAC-LD المجرب: SIP أحادي 64kbps، وH.323 ستيريو 128kbps، مع G.722 كبديل.",
+      "notesEn": "Cisco EX90. Default: SIP with G.722 and 1080p. SIP and H.323 passed. Verified AAC-LD: SIP mono 64kbps; H.323 stereo 128kbps, with G.722 fallback.",
+      "protocols": [
+        {
+          "protocol": "H323",
+          "audioModes": [
+            {
+              "requestedCodec": "g722",
+              "negotiatedSend": "g722",
+              "negotiatedReceive": "g722",
+              "channels": 1,
+              "kbps": 64,
+              "stable": true,
+              "qualityNoteAr": "",
+              "qualityNoteEn": ""
+            },
+            {
+              "requestedCodec": "aac-ld",
+              "negotiatedSend": "aac-ld",
+              "negotiatedReceive": "aac-ld",
+              "channels": 2,
+              "kbps": 128,
+              "stable": true,
+              "qualityNoteAr": "",
+              "qualityNoteEn": ""
+            }
+          ]
+        },
+        {
+          "protocol": "Sip",
+          "audioModes": [
+            {
+              "requestedCodec": "g722",
+              "negotiatedSend": "g722",
+              "negotiatedReceive": "g722",
+              "channels": 1,
+              "kbps": 64,
+              "stable": true,
+              "qualityNoteAr": "",
+              "qualityNoteEn": ""
+            },
+            {
+              "requestedCodec": "aac-ld",
+              "negotiatedSend": "aac-ld",
+              "negotiatedReceive": "aac-ld",
+              "channels": 1,
+              "kbps": 64,
+              "stable": true,
+              "qualityNoteAr": "",
+              "qualityNoteEn": ""
+            }
+          ]
+        }
+      ],
+      "testedAt": "2026-10-05"
+    }
+  ]
+}

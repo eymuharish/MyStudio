@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="System.IO" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TeleStudio.Contracts\TeleStudio.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\TeleStudio.Desktop\TeleStudio.Desktop.csproj" />
+  </ItemGroup>
+  <ItemGroup><Compile Include="../../MyStudio.WinUI/StudioControlPolicy.cs" Link="StudioControlPolicy.cs" /></ItemGroup>
+<ItemGroup><Compile Include="../../MyStudio.WinUI/CallBarPolicy.cs" Link="CallBarPolicy.cs" /></ItemGroup>
+<ItemGroup><Compile Include="../../MyStudio.WinUI/OpalSharingPolicy.cs" Link="OpalSharingPolicy.cs" /></ItemGroup>
+<ItemGroup><Compile Include="../../MyStudio.WinUI/OpalScreenSharingPause.cs" Link="OpalScreenSharingPause.cs" /></ItemGroup>
+<ItemGroup><Compile Include="../../MyStudio.WinUI/OpalRecordingPolicy.cs" Link="OpalRecordingPolicy.cs" /></ItemGroup>
+<ItemGroup><Compile Include="../../MyStudio.WinUI/MediaSmokePeerLaunch.cs" Link="MediaSmokePeerLaunch.cs" /></ItemGroup>
+<ItemGroup><Compile Include="../../MyStudio.WinUI/RecordingPauseProof.cs" Link="RecordingPauseProof.cs" /><Compile Include="../../MyStudio.WinUI/SmokeCleanup.cs" Link="SmokeCleanup.cs" /></ItemGroup></Project>

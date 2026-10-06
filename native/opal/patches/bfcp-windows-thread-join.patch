@@ -1,0 +1,31 @@
+diff --git a/src/sdp/BFCP/libbfcp/BFCPconnection.cpp b/src/sdp/BFCP/libbfcp/BFCPconnection.cpp
+--- a/src/sdp/BFCP/libbfcp/BFCPconnection.cpp
++++ b/src/sdp/BFCP/libbfcp/BFCPconnection.cpp
+@@ -623,6 +623,7 @@
+                     Log(ERR, "BFCP TCP disconnect role[%s] failed ",m_eRole == BFCPConnectionRole::PASSIVE?"server":"client");
+                     BFCP_THREAD_KILL(m_thread);
+ 		    BFCP_THREAD_KILL(m_timer_thread);
++                    m_timer_thread = BFCP_NULL_THREAD_HANDLE;
+                     m_isStarted = false ;
+                     m_bConnected = false ;
+                     m_thread = BFCP_NULL_THREAD_HANDLE ;
+@@ -636,6 +637,19 @@
+             Log(ERR, "Exception catched in thread");
+         }
+     }
++#ifdef WIN32
++    // Flags are cleared before the last callback. Keep its owner alive until
++    // both actual Windows threads have exited, including the timer thread.
++    HANDLE * handles[] = { &m_thread, &m_timer_thread };
++    for (unsigned index = 0; index < 2; ++index) {
++        HANDLE handle = *handles[index];
++        if (handle != BFCP_NULL_THREAD_HANDLE && GetThreadId(handle) != GetCurrentThreadId()) {
++            WaitForSingleObject(handle, INFINITE);
++            CloseHandle(handle);
++            *handles[index] = BFCP_NULL_THREAD_HANDLE;
++        }
++    }
++#endif
+ }
+ 
+ 

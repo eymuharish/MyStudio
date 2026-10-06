@@ -1,0 +1,183 @@
+diff --git a/src/sdp/BFCP/libbfcp/bfcpmsg/bfcp_messages_parse.c b/src/sdp/BFCP/libbfcp/bfcpmsg/bfcp_messages_parse.c
+--- a/src/sdp/BFCP/libbfcp/bfcpmsg/bfcp_messages_parse.c
++++ b/src/sdp/BFCP/libbfcp/bfcpmsg/bfcp_messages_parse.c
+@@ -1156,7 +1156,7 @@
+     bfcp_floor_request_status *fRS = NULL;
+     bfcp_request_status *rs = NULL;
+     char *sInfo = NULL;
+-    if (!message || !message->buffer || !recvA || recvA->length < 8 || recvA->position < 0 ||
++    if (!message || !message->buffer || !recvA || recvA->length < 4 || recvA->position < 0 ||
+         recvA->position > message->length || recvA->length > message->length-recvA->position)
+         return NULL;
+     end = recvA->position+recvA->length;
+@@ -1194,8 +1194,15 @@
+         bfcp_free_received_attribute(attribute);
+         attribute = NULL;
+     }
+-    if (rs)
+-        fRS = bfcp_new_floor_request_status(fID, rs->rs, rs->qp, sInfo);
++    /* RFC8855: status is optional; NULL never means Granted. */
++    fRS = (bfcp_floor_request_status *)calloc(1, sizeof(*fRS));
++    if (fRS) {
++        fRS->fID = fID;
++        fRS->rs = rs;
++        fRS->sInfo = sInfo;
++        rs = NULL;
++        sInfo = NULL;
++    }
+ done:
+     if (attribute)
+         bfcp_free_received_attribute(attribute);
+@@ -1209,62 +1216,66 @@
+ 
+ bfcp_overall_request_status *bfcp_parse_attribute_OVERALL_REQUEST_STATUS(bfcp_message *message, bfcp_received_attribute *recvA)
+ {
+-    BFCP_msgLog(INF,"< parse attribute OVERALL_REQUEST_STATUS length[%d] ", recvA->length );
+-    if(recvA->length<3)	/* The length of this attribute is wrong */
+-        return NULL;
+-    else {
+-        int position;
+-        UINT16  frqID;
+-        bfcp_received_attribute *attribute = NULL;
+-        bfcp_overall_request_status *oRS = NULL;
+-        UINT16  ch16;	/* 16 bits */
+-        bfcp_request_status *rs = NULL;
+-        char *sInfo = NULL;
+-        unsigned char *buffer = message->buffer+recvA->position+2;	/* Skip the Header */
+-        memcpy(&ch16, buffer, 2);
+-        frqID = ntohs(ch16);	/* The first value, FloorID */
+-        BFCP_msgLog(INF,"< parse attribute OVERALL_REQUEST_STATUS FloorRequestId[%d] ", frqID );
+-        /* Some attributes are not compulsory, they might not be in the message, let's check it */
+-        message->position = recvA->position+4;
+-        while(recvA->length>((message->position)-(recvA->position))) {
+-            position = message->position;	/* Remember where message was before attribute parsing */
+-            attribute = bfcp_parse_attribute(message);
+-            if(!attribute)	/* An error occurred while parsing this attribute */
+-                return NULL;
+-            BFCP_msgLog(INF,"< parse attribute OVERALL_REQUEST_STATUS Requested by type[%d / %s]",
+-                attribute->type,getBfcpAttribute(attribute->type)); 
+-
+-            switch(attribute->type) {
+-            case REQUEST_STATUS:
+-                rs = bfcp_parse_attribute_REQUEST_STATUS(message, attribute);
+-                if(!rs)	/* An error occurred while parsing this attribute */
+-                    return NULL;
+-                break;
+-            case STATUS_INFO:
+-                sInfo = bfcp_parse_attribute_STATUS_INFO(message, attribute);
+-                if(!sInfo)	/* An error occurred while parsing this attribute */
+-                    return NULL;
+-                break;
+-            default:	/* There's an attribute that shouldn't be here... */
+-                break;
+-            }
+-            message->position = position+attribute->length;
+-            if(((attribute->length)%4) != 0)
+-                message->position = message->position+4-((attribute->length)%4);
+-            bfcp_free_received_attribute(attribute);
++    int end, position;
++    UINT16 frqID, ch16;
++    bfcp_received_attribute *attribute = NULL;
++    bfcp_overall_request_status *oRS = NULL;
++    bfcp_request_status *rs = NULL;
++    char *sInfo = NULL;
++    if (!message || !message->buffer || !recvA || recvA->length < 4 || recvA->position < 0 ||
++        recvA->position > message->length || recvA->length > message->length-recvA->position)
++        return NULL;
++    end = recvA->position+recvA->length;
++    memcpy(&ch16, message->buffer+recvA->position+2, 2);
++    frqID = ntohs(ch16);
++    message->position = recvA->position+4;
++    while (message->position < end) {
++        position = message->position;
++        if (end-position < 2)
++            goto done;
++        attribute = bfcp_parse_attribute(message);
++        if (!attribute || attribute->length < 2 || ((attribute->length+3)&~3) > end-position)
++            goto done;
++        switch (attribute->type) {
++        case REQUEST_STATUS:
++            if (rs)
++                goto done;
++            rs = bfcp_parse_attribute_REQUEST_STATUS(message, attribute);
++            if (!rs || rs->rs < BFCP_PENDING || rs->rs > BFCP_REVOKED)
++                goto done;
++            break;
++        case STATUS_INFO:
++            if (sInfo)
++                goto done;
++            sInfo = bfcp_parse_attribute_STATUS_INFO(message, attribute);
++            if (!sInfo)
++                goto done;
++            break;
++        default:
++            break;
+         }
+-        oRS = bfcp_new_overall_request_status(frqID, rs->rs, rs->qp, sInfo);
+-        if(!oRS)	/* An error occurred in creating a new Floor Request Information */
+-            return NULL;
+-        if(rs)
+-            bfcp_free_request_status(rs);
+-        if(sInfo)
+-            free(sInfo);
+-        message->position = recvA->position+recvA->length;
+-        if(((recvA->length)%4) != 0)
+-            message->position = message->position+4-((recvA->length)%4);
+-        return oRS;
+-    }
++        message->position = position+((attribute->length+3)&~3);
++        bfcp_free_received_attribute(attribute);
++        attribute = NULL;
++    }
++    /* MyStudio bounded optional overall status: NULL never means Granted. */
++    oRS = (bfcp_overall_request_status *)calloc(1, sizeof(*oRS));
++    if (oRS) {
++        oRS->frqID = frqID;
++        oRS->rs = rs;
++        oRS->sInfo = sInfo;
++        rs = NULL;
++        sInfo = NULL;
++    }
++done:
++    if (attribute)
++        bfcp_free_received_attribute(attribute);
++    if (rs)
++        bfcp_free_request_status(rs);
++    if (sInfo)
++        free(sInfo);
++    message->position = recvA->position+((recvA->length+3)&~3);
++    return oRS;
+ }
+ 
+ int bfcp_parse_attribute_NONCE(bfcp_message *message, bfcp_received_attribute *recvA)
+diff --git a/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp b/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp
+--- a/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp
++++ b/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp
+@@ -1132,7 +1132,7 @@
+                             j++;
+                             Log(INF,"      (n.%d):  %d", j, tempID->fID);
+                             evt.FloorID = tempID->fID ;
+-                            if(tempID->rs->rs){
++                            if(tempID->rs && tempID->rs->rs){
+                                 Log(INF,"      RequestStatus  %s", getBfcpStatus(tempID->rs->rs));
+                                 Log(INF,"      Queue Position  %d", tempID->rs->qp);
+                                 evt.FloorStatus = (e_bfcp_status)tempID->rs->rs ;
+@@ -1176,6 +1176,9 @@
+             {
+                 bfcp_floorStatus_floorRequestStatus_Ack(recv_msg->primitive, conferenceID, userID, transactionID);
+             }
++            // An explicit per-floor status may supply the event status; absence cannot.
++            if (evt.Status == 0 && evt.FloorStatus >= BFCP_PENDING && evt.FloorStatus <= BFCP_REVOKED)
++                evt.Status = evt.FloorStatus;
+             BFCPFSM_FsmEvent( &evt );
+             Log(INF,"");
+             break;
+@@ -1200,7 +1203,7 @@
+                     j++;
+                     Log(INF,"      (n.%d): %d", j, tempID->fID);
+                     evt.FloorID = tempID->fID ;
+-                    if(tempID->rs->rs) {
++                    if(tempID->rs && tempID->rs->rs) {
+                         Log(INF,"      RequestStatus  %s", getBfcpStatus(tempID->rs->rs));
+                         evt.FloorStatus = (e_bfcp_status)tempID->rs->rs ;
+                     }

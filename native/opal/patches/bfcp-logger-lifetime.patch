@@ -1,0 +1,46 @@
+diff --git a/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp b/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp
+index 96e34a6..d9600bc 100644
+--- a/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp
++++ b/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp
+@@ -16,13 +16,14 @@
+     
+ extern "C" void _ParticpantLog(char* pcFile, int iLine, int iErrorLevel, char* pcFormat, ...)
+ {
+-    static BFCP_Participant _p ;
+     va_list arg;
+-    char s[BFCP_STRING_SIZE];
+     va_start(arg,pcFormat);
+-    vsnprintf(s,BFCP_STRING_SIZE,pcFormat,arg);
++    // Log without constructing a fake endpoint with uninitialised session
++    // resources and a process-exit destructor.
++    fprintf(stderr, "%s:%d | %d | ", pcFile ? pcFile : "", iLine, iErrorLevel);
++    vfprintf(stderr, pcFormat, arg);
++    fputc('\n', stderr);
+     va_end(arg);
+-    return  _p.Log(pcFile, iLine, iErrorLevel, s ) ;
+ }
+     
+ BFCP_Participant::BFCP_Participant(UINT32 p_confID ,UINT16 p_userID , UINT16 p_floorID , UINT16 p_streamID , BFCP_Participant::ParticipantEvent* p_ParticipantEvent, int transport):BFCPConnection(transport)
+diff --git a/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpsrv/bfcp_server.cpp b/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpsrv/bfcp_server.cpp
+index a6f1957..245e251 100644
+--- a/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpsrv/bfcp_server.cpp
++++ b/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpsrv/bfcp_server.cpp
+@@ -42,13 +42,14 @@
+ 
+ extern "C" void _ServerLog(char* pcFile, int iLine, int iErrorLevel, char* pcFormat, ...)
+ {
+-    static BFCP_Server _p ;
+     va_list arg;
+-    char s[BFCP_STRING_SIZE];
+     va_start(arg,pcFormat);
+-    vsnprintf(s,BFCP_STRING_SIZE,pcFormat,arg);
++    // A default BFCP endpoint is not a logger: its empty constructor leaves
++    // session resources uninitialised and its static destructor aborts exit.
++    fprintf(stderr, "%s:%d | %d | ", pcFile ? pcFile : "", iLine, iErrorLevel);
++    vfprintf(stderr, pcFormat, arg);
++    fputc('\n', stderr);
+     va_end(arg);
+-    return  _p.Log(pcFile, iLine, iErrorLevel, s ) ;
+ }
+ 
+ BFCP_Server::BFCP_Server(UINT8 Max_conf ,UINT32 p_confID ,UINT32 p_userID , UINT32 p_floorID , UINT32 p_streamID , BFCP_Server::ServerEvent* p_ServerEvent, int transport ):BFCPConnection(transport) {

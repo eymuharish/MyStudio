@@ -1,0 +1,52 @@
+diff --git a/src/sdp/bfcpinterface.cxx b/src/sdp/bfcpinterface.cxx
+--- a/src/sdp/bfcpinterface.cxx
++++ b/src/sdp/bfcpinterface.cxx
+@@ -559,6 +559,8 @@
+   PTimer m_keepAliveTimer;
+ 
+   LibParticipantWrapper(BFCPSession & session, BFCPCallback * callback);
++  virtual ~LibParticipantWrapper();
++  void StopParticipant();
+ 
+   virtual bool OnBfcpParticipantEvent(BFCP_fsm::e_BFCP_ACT p_evt, BFCP_fsm::st_BFCP_fsm_event* p_FsmEvent);
+ 
+@@ -591,6 +593,22 @@
+   m_keepAliveTimer.RunContinuous(5000);
+ }
+ 
++
++BFCPSession::LibParticipantWrapper::~LibParticipantWrapper()
++{
++  StopParticipant();
++}
++
++void BFCPSession::LibParticipantWrapper::StopParticipant()
++{
++  // The timer and wire threads call this wrapper. Join them before destroying it.
++  m_keepAliveTimer.Stop();
++  if (m_BFCPParticipant != NULL) {
++    m_BFCPParticipant->disconnect();
++    delete m_BFCPParticipant;
++    m_BFCPParticipant = NULL;
++  }
++}
+ 
+ void BFCPSession::LibParticipantWrapper::UDPKeepAlive(PTimer &, P_INT_PTR)
+ {
+@@ -887,6 +905,7 @@
+   if (!remoteAddress.GetIpAndPort(m_remoteIP, m_remotePort))
+     return false;
+ 
++  m_participant->StopParticipant();
+   m_server->StopServer();
+ 
+   FloorStreamMap::const_iterator floor = m_floorStreamMap.begin();
+@@ -915,6 +934,8 @@
+                                                           (UINT16)floor->second,
+                                                           m_participant,
+                                                           m_transportProto);
++
++  m_participant->m_keepAliveTimer.RunContinuous(5000);
+ 
+   // Register negotiated remote and virtual-local users before transport callbacks.
+   m_server->m_BFCPServer->AddUser(m_userID);

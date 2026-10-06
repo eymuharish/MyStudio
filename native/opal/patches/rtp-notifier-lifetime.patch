@@ -1,0 +1,14 @@
+diff --git a/src/rtp/rtp_session.cxx b/src/rtp/rtp_session.cxx
+--- a/src/rtp/rtp_session.cxx
++++ b/src/rtp/rtp_session.cxx
+@@ -3441,7 +3441,10 @@ void OpalRTPSession::NotifierMap::Remove(const DataNotifier & notifier)
+   NotifierMap::iterator it = begin();
+   while (it != end()) {
+-    if (it->second != notifier)
++    // PTLib4 notifiers are copied shared function wrappers but inherit
++    // PObject address comparison. This registry has one RTP receive callback
++    // per target. Compare the bound target so closed streams are removed.
++    if (it->second.GetTarget() != notifier.GetTarget())
+       ++it;
+     else
+       erase(it++);

@@ -1,0 +1,21 @@
+diff --git a/src/sdp/BFCP/libbfcp/BFCPconnection.cpp b/src/sdp/BFCP/libbfcp/BFCPconnection.cpp
+--- a/src/sdp/BFCP/libbfcp/BFCPconnection.cpp
++++ b/src/sdp/BFCP/libbfcp/BFCPconnection.cpp
+@@ -548,9 +548,17 @@
+             Log(INF, "BFCP transport thread role[%s] started",m_eRole == BFCPConnectionRole::PASSIVE?"server":"client");
+         else {
+             Log(ERR, "BFCP TCP connect role[%s] failed ",m_eRole == BFCPConnectionRole::PASSIVE?"server":"client");
++#ifdef WIN32
++            // Failed connect still owns real thread handles. Close/join once.
++            m_bClose = true;
++            bfcp_mutex_unlock(m_mutConnect);
++            disconnect();
++            return false;
++#else
+             BFCP_THREAD_KILL(m_thread);
+             m_isStarted = false ;
+             m_bConnected = false ;
++#endif
+         }
+     }
+     bfcp_mutex_unlock(m_mutConnect);

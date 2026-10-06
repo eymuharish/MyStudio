@@ -1,0 +1,21 @@
+diff --git a/src/sip/sippdu.cxx b/src/sip/sippdu.cxx
+--- a/src/sip/sippdu.cxx
++++ b/src/sip/sippdu.cxx
+@@ -2335,9 +2335,16 @@
+   if (m_transport->IsReliable()) {
+     PChannel & channel = *m_transport->GetChannel();
+     PTimeInterval oldTimeout = channel.GetReadTimeout();
+-    channel.peek();
++    while (channel.peek() == std::char_traits<char>::eof() &&
++           channel.GetErrorCode(PChannel::LastReadError) == PChannel::Timeout &&
++           m_transport->IsOpen()) {
++      // No first PDU byte arrived. An idle read timeout is not a lost flow.
++      // Real close/errors and partial-PDU timeouts retain the normal handling.
++      channel.clear();
++      channel.SetErrorValues(PChannel::NoError, 0, PChannel::LastReadError);
++    }
+     channel.SetReadTimeout(m_transport->GetEndPoint().GetManager().GetSignalingTimeout());
+     status = Parse(channel, true, false);
+     channel.SetReadTimeout(oldTimeout);
+     PTRACE_IF(2, status == SIP_PDU::Local_TransportLost,
+               "Reliable transport lost to " << *m_transport <<

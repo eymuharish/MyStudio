@@ -1,0 +1,32 @@
+diff --git a/src/sip/sippdu.cxx b/src/sip/sippdu.cxx
+--- a/src/sip/sippdu.cxx
++++ b/src/sip/sippdu.cxx
+@@ -3447,12 +3447,15 @@
+ 
+   PAssert(m_owner->m_object.SafeReference(), "Transaction created on owner pending deletion.");
+ 
++  SIPConnection * conn = GetConnection();
++  if (m_transport == NULL && conn != NULL)
++    SetTransport(conn->GetEstablishedDialogTransport() PTRACE_PARAM(, "SIP dialog transaction"));
++
+   if (m_transport == NULL || !m_transport->IsOpen()) {
+     SIP_PDU::StatusCodes reason;
+     SetTransport(GetEndPoint().GetTransport(*m_owner, reason) PTRACE_PARAM(, "SIPTransaction"));
+   }
+ 
+-  SIPConnection * conn = GetConnection();
+   if (conn == NULL)
+     m_mime.SetProductInfo(GetEndPoint().GetUserAgent(), GetEndPoint().GetProductInfo());
+   else {
+diff --git a/src/sip/sipcon.cxx b/src/sip/sipcon.cxx
+--- a/src/sip/sipcon.cxx
++++ b/src/sip/sipcon.cxx
+@@ -1500,7 +1500,7 @@
+ OpalTransportPtr SIPConnection::GetEstablishedDialogTransport() const
+ {
+   OpalTransportPtr flow = m_establishedDialogTransport;
+-  if (flow == NULL || !flow->IsOpen() || !flow->IsReliable())
++  if (GetPhase() < ConnectedPhase || flow == NULL || !flow->IsOpen() || !flow->IsReliable())
+     return NULL;
+   OpalTransportAddress nextHop = GetRemoteTransportAddress();
+   OpalTransportAddress peer = flow->GetRemoteAddress();

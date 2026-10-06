@@ -1,0 +1,5 @@
+LIBRARY "EssaStudio.CaptureCatalog.dll"
+EXPORTS
+    EssaCaptureCatalogAbiVersion
+    EssaCaptureCatalogQueryV1
+    EssaCameraCatalogQueryV1

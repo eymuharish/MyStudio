@@ -1,0 +1,108 @@
+diff --git a/include/sdp/bfcpinterface.h b/include/sdp/bfcpinterface.h
+--- a/include/sdp/bfcpinterface.h
++++ b/include/sdp/bfcpinterface.h
+@@ -172,6 +172,8 @@
+ 
+     virtual const PCaselessString & GetSessionType() const;
+     virtual bool Open(const PString & localInterface, const OpalTransportAddress & remoteAddress);
++    virtual bool IsOpen() const override;
++    virtual bool Close() override;
+     virtual OpalTransportAddress GetLocalAddress(bool isMediaAddress = true) const;
+     virtual OpalTransportAddress GetRemoteAddress(bool isMediaAddress = true) const;
+     virtual bool SetRemoteAddress(const OpalTransportAddress & remoteAddress, bool isMediaAddress = true);
+diff --git a/src/sdp/bfcpinterface.cxx b/src/sdp/bfcpinterface.cxx
+--- a/src/sdp/bfcpinterface.cxx
++++ b/src/sdp/bfcpinterface.cxx
+@@ -702,6 +702,7 @@
+ 
+ bool BFCPSession::LibParticipantWrapper::disconnected()
+ {
++  m_session.m_clientServerStarted = false;
+   m_callback->OnBfcpDisconnected();
+   return true ;
+ }
+@@ -879,19 +880,40 @@
+ {
+   PTRACE(4, "BFCPSession instance destroy.");
+ 
++  Close();
+   delete m_participant;
+-
+-  if (m_server != NULL && m_server->m_BFCPServer != NULL) {
+-    m_server->m_BFCPServer->RemoveUserInConf(LOCAL_CLIENT_USER_ID);
+-    m_server->m_BFCPServer->RemoveUserInConf(REMOTE_CLIENT_USER_ID);
+-    delete m_server;
+-  }
++  delete m_server;
+ }
+ 
+ 
+ const PCaselessString & BFCPSession::GetSessionType() const
+ {
+   return GetTransportProto();
++}
++
++
++// BFCP owns libbfcp sockets, not an OpalMediaTransport.
++bool BFCPSession::IsOpen() const
++{
++  if (!m_clientServerStarted || m_participant == NULL ||
++      m_participant->m_BFCPParticipant == NULL ||
++      !m_participant->m_BFCPParticipant->isStarted() ||
++      !m_participant->m_BFCPParticipant->isConnected())
++    return false;
++  // A passive/UDP role also owns its FCS listener; the active TCP role does not.
++  return m_server != NULL && (m_server->m_BFCPServer == NULL ||
++      (m_server->m_BFCPServer->isStarted() && m_server->m_BFCPServer->isConnected()));
++}
++
++bool BFCPSession::Close()
++{
++  m_clientServerStarted = false;
++  if (m_participant != NULL)
++    m_participant->StopParticipant();
++  if (m_server != NULL)
++    m_server->StopServer();
++  m_floorOwnerID = 0;
++  return true;
+ }
+ 
+ 
+@@ -906,7 +928,7 @@
+     return false;
+   m_localIP = localInterface;
+   bool passive = m_remotePort == 0 || GetSetUpMode() == SetUpModePassive;
+-  if (m_clientServerStarted) {
++  if (IsOpen()) {
+     if (passive && m_server->m_BFCPServer != NULL)
+       return true;
+     if (!passive && m_server->m_BFCPServer == NULL && m_participant->m_BFCPParticipant != NULL &&
+@@ -915,8 +937,7 @@
+       return true;
+   }
+   m_clientServerStarted = false;
+-  m_participant->StopParticipant();
+-  m_server->StopServer();
++  Close();
+ 
+   FloorStreamMap::const_iterator floor = m_floorStreamMap.begin();
+   OpalRTPConnection * connection = dynamic_cast<OpalRTPConnection *>(&m_connection);
+@@ -963,7 +984,7 @@
+   if (m_transportProto == BFCP_OVER_TCP)
+     return OpenTCP(localInterface, remoteAddress);
+   // Before we start client, we must have server. So, let's create one.
+-  if (m_clientServerStarted && GetRemoteAddress() == remoteAddress)
++  if (IsOpen() && GetRemoteAddress() == remoteAddress)
+     return true;
+ 
+   if (m_floorStreamMap.empty()) {
+@@ -976,8 +997,7 @@
+   if (!remoteAddress.GetIpAndPort(m_remoteIP, m_remotePort))
+     return false;
+ 
+-  m_participant->StopParticipant();
+-  m_server->StopServer();
++  Close();
+ 
+   FloorStreamMap::const_iterator floor = m_floorStreamMap.begin();
+   OpalRTPConnection * connection = dynamic_cast<OpalRTPConnection *>(&m_connection);

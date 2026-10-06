@@ -1,0 +1,25 @@
+diff --git a/src/sdp/bfcpinterface.cxx b/src/sdp/bfcpinterface.cxx
+--- a/src/sdp/bfcpinterface.cxx
++++ b/src/sdp/bfcpinterface.cxx
+@@ -37,2 +37,3 @@
+ #include <opal/endpoint.h>
++#include <rtp/rtpconn.h>
+ #include <sdp/sdp.h>
+@@ -802,8 +802,18 @@ bool BFCPSession::RequestFloor(bool release)
+   if (release)
+     return m_participant->m_BFCPParticipant->bfcp_floorRelease_participant() != -1;
+-  return m_participant->m_BFCPParticipant->bfcp_floorRequest_participant(
+-      (UINT16)m_floorStreamMap.begin()->first) != -1;
++  // Stock SDP maps both main and presentation streams to floors. Request the
++  // dedicated presentation floor rather than whichever map entry sorts first.
++  OpalRTPConnection * connection = dynamic_cast<OpalRTPConnection *>(&m_connection);
++  OpalMediaSession * presentation = connection != NULL ? connection->FindSessionByMediaType(
++      OpalPresentationVideoMediaDefinition::Name()) : NULL;
++  if (presentation == NULL)
++    return false;
++  for (FloorStreamMap::const_iterator it = m_floorStreamMap.begin(); it != m_floorStreamMap.end(); ++it) {
++    if (it->second == presentation->GetSessionID())
++      return m_participant->m_BFCPParticipant->bfcp_floorRequest_participant((UINT16)it->first) != -1;
++  }
++  return false;
+ }

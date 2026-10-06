@@ -1,0 +1,57 @@
+diff --git a/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp b/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp
+--- a/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp
++++ b/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp
+@@ -1377,7 +1377,7 @@
+ 
+ bool BFCP_Participant::OnBFCPDisconnected(BFCP_SOCKET socket)
+ {
+-    Log(INF,_T("BFCP disconnection callback sock fd [%d] [%s:%d]"), socket);
++    Log(INF,_T("BFCP disconnection callback sock fd [%llu]"), (unsigned long long)socket);
+     s_bfcp_msg_event evt ;
+     memset ( &evt , 0 , sizeof(s_bfcp_msg_event));
+     return  FsmCtrlPerform( BFCP_fsm::BFCP_ACT_DISCONNECTED , &evt ) ;
+diff --git a/src/sdp/bfcpinterface.cxx b/src/sdp/bfcpinterface.cxx
+--- a/src/sdp/bfcpinterface.cxx
++++ b/src/sdp/bfcpinterface.cxx
+@@ -850,6 +850,13 @@
+ }
+ 
+ 
++static bool IsPresentationFloor(OpalRTPConnection * connection, unsigned sessionId)
++{
++  OpalMediaSession * session = connection != NULL ? connection->GetMediaSession(sessionId) : NULL;
++  return session != NULL && (session->GetMediaType() == OpalPresentationVideoMediaDefinition::Name() ||
++      session->GetVideoContentRole() == OpalVideoFormat::ePresentation);
++}
++
+ bool BFCPSession::RequestFloor(bool release)
+ {
+   if (!m_clientServerStarted || m_participant == NULL ||
+@@ -860,12 +867,8 @@
+   // Stock SDP maps both main and presentation streams to floors. Request the
+   // dedicated presentation floor rather than whichever map entry sorts first.
+   OpalRTPConnection * connection = dynamic_cast<OpalRTPConnection *>(&m_connection);
+-  OpalMediaSession * presentation = connection != NULL ? connection->FindSessionByMediaType(
+-      OpalPresentationVideoMediaDefinition::Name()) : NULL;
+-  if (presentation == NULL)
+-    return false;
+   for (FloorStreamMap::const_iterator it = m_floorStreamMap.begin(); it != m_floorStreamMap.end(); ++it) {
+-    if (it->second == presentation->GetSessionID())
++    if (IsPresentationFloor(connection, it->second))
+       return m_participant->m_BFCPParticipant->bfcp_floorRequest_participant((UINT16)it->first) != -1;
+   }
+   return false;
+@@ -916,11 +919,8 @@
+ 
+   FloorStreamMap::const_iterator floor = m_floorStreamMap.begin();
+   OpalRTPConnection * connection = dynamic_cast<OpalRTPConnection *>(&m_connection);
+-  OpalMediaSession * presentation = connection != NULL ? connection->FindSessionByMediaType(
+-      OpalPresentationVideoMediaDefinition::Name()) : NULL;
+-  if (presentation != NULL)
+-    for (FloorStreamMap::const_iterator it = m_floorStreamMap.begin(); it != m_floorStreamMap.end(); ++it)
+-      if (it->second == presentation->GetSessionID()) { floor = it; break; }
++  for (FloorStreamMap::const_iterator it = m_floorStreamMap.begin(); it != m_floorStreamMap.end(); ++it)
++    if (IsPresentationFloor(connection, it->second)) { floor = it; break; }
+ 
+   SetSetUpMode(passive ? SetUpModePassive : SetUpModeActive);
+   m_connectionMode = ConnectionNew;

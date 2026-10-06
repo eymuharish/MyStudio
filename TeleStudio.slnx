@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TeleStudio.Contracts/TeleStudio.Contracts.csproj" />
+    <Project Path="src/TeleStudio.Desktop/TeleStudio.Desktop.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/TeleStudio.Presentation/TeleStudio.Presentation.csproj" />
+    <Project Path="src/TeleStudio.Settings/TeleStudio.Settings.csproj" />
+    <Project Path="MyStudio.WinUI/MyStudio.WinUI.csproj">
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TeleStudio.Contracts.Tests/TeleStudio.Contracts.Tests.csproj" />
+    <Project Path="tests/TeleStudio.Desktop.Tests/TeleStudio.Desktop.Tests.csproj" />
+    <Project Path="tests/TeleStudio.Settings.Tests/TeleStudio.Settings.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Platforms>x64</Platforms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>EssaStudio</AssemblyName>
+    <ApplicationIcon>Assets\Brand\EssaStudio.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>2.2.0</Version>
+    <FileVersion>$(Version).0</FileVersion>
+    <AssemblyVersion>$(Version).0</AssemblyVersion>
+    <InformationalVersion>$(Version) OPAL shared services</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Product>EssaStudio</Product>
+    <AssemblyTitle>EssaStudio</AssemblyTitle>
+    <Description>Direct bilingual SIP and H.323 studio calling for Windows</Description>
+    <Copyright>جميع حقوق النسخ محفوظة لمصمم التطبيق الأستاذ. عيسى يحي مهارش</Copyright>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Assets\Fonts\IBMPlexSansArabic-Regular.ttf" />
+    <None Remove="Assets\Fonts\IBMPlexSansArabic-Medium.ttf" />
+    <None Remove="Assets\Fonts\IBMPlexSansArabic-SemiBold.ttf" />
+    <None Remove="Assets\Fonts\IBMPlexSansArabic-Bold.ttf" />
+    <None Remove="Assets\Fonts\OFL.txt" />
+    <Resource Include="Assets\Fonts\IBMPlexSansArabic-Regular.ttf" />
+    <Resource Include="Assets\Fonts\IBMPlexSansArabic-Medium.ttf" />
+    <Resource Include="Assets\Fonts\IBMPlexSansArabic-SemiBold.ttf" />
+    <Resource Include="Assets\Fonts\IBMPlexSansArabic-Bold.ttf" />
+    <Resource Include="Assets\Fonts\OFL.txt" />
+    <Resource Include="Assets\Brand\EssaStudio-Mark.png" />
+    <Resource Include="Assets\Brand\EssaStudio.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TeleStudio.Desktop.Tests" />
+    <InternalsVisibleTo Include="MyStudio" />
+    <InternalsVisibleTo Include="MyStudio-OPAL" />
+    <ProjectReference Include="..\TeleStudio.Contracts\TeleStudio.Contracts.csproj" />
+    <ProjectReference Include="..\TeleStudio.Presentation\TeleStudio.Presentation.csproj" />
+    <ProjectReference Include="..\TeleStudio.Settings\TeleStudio.Settings.csproj" />
+  </ItemGroup>
+</Project>

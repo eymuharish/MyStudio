@@ -1,0 +1,12 @@
+﻿{
+    "schemaVersion":  1,
+    "repository":  "https://github.com/IBM/plex",
+    "commit":  "bf260093582f04622aacc1e9f9ca604d7ccd0c42",
+    "files":  {
+                  "IBMPlexSansArabic-Regular.ttf":  "8E0F1046C736BF939D4939EE3AE0116ACF61CBCD6592DEAE7656761627080981",
+                  "IBMPlexSansArabic-Medium.ttf":  "EEF162792CF2A6BA5AF7943AF9F86843B1286AB67AAF615C18C07FD8E97A4A90",
+                  "IBMPlexSansArabic-SemiBold.ttf":  "1D4AB8B6EBADBB9D85F2ECDCB7CB0BB672420A8FF3388AB4F69D7B98056562AA",
+                  "IBMPlexSansArabic-Bold.ttf":  "B74F809DEAD12442ED56E02A12C3BCC02076C9AD4E32F17D0A9CA6FC1AAFC89E",
+                  "OFL.txt":  "91C25C350D3CAC39DA2736D74F7BA37EF648F5237A4E330A240615BC8D8C4360"
+              }
+}

@@ -1,0 +1,180 @@
+diff --git a/include/sdp/bfcpinterface.h b/include/sdp/bfcpinterface.h
+--- a/include/sdp/bfcpinterface.h
++++ b/include/sdp/bfcpinterface.h
+@@ -50,6 +50,8 @@
+     ));
+ 
+     BFCPDescription();
++    BFCPDescription(const BFCPDescription & other);
++    BFCPDescription & operator=(const BFCPDescription & other);
+ 
+ 	unsigned GetConfID() const { return m_confID; }
+ 	void SetConfID(unsigned p_confID) { m_confID = p_confID; }
+@@ -59,8 +61,9 @@
+ 
+     typedef std::map<unsigned, unsigned> FloorStreamMap;
+     unsigned SetFloorStreamMapping(unsigned floorId, unsigned streamId);
+-	FloorStreamMap GetFloorStreamMap() const { return m_floorStreamMap; }
+-    bool HasFloorID(unsigned floorID) const { return m_floorStreamMap.find(floorID) != m_floorStreamMap.end(); }
++    FloorStreamMap GetFloorStreamMap() const;
++    void SetFloorStreamMap(const FloorStreamMap & map);
++    bool HasFloorID(unsigned floorID) const;
+ 
+     const PCaselessString & GetTransportProto() const;
+     bool SetTransportProto(const PString & transport);
+@@ -70,6 +73,9 @@
+     unsigned       m_confID;
+     unsigned       m_userID;
+     FloorStreamMap m_floorStreamMap;
++    // Map-only synchronization. Never hold while invoking wire callbacks,
++    // opening/closing transport, or obtaining a connection/session lock.
++    mutable PMutex m_floorStreamMutex;
+ 	int            m_transportProto;
+ };
+ 
+diff --git a/src/sdp/bfcpinterface.cxx b/src/sdp/bfcpinterface.cxx
+--- a/src/sdp/bfcpinterface.cxx
++++ b/src/sdp/bfcpinterface.cxx
+@@ -72,6 +72,7 @@
+ 
+ unsigned BFCPDescription::SetFloorStreamMapping(unsigned floorId, unsigned streamId)
+ {
++  PWaitAndSignal lock(m_floorStreamMutex);
+   if (floorId > 0) {
+     m_floorStreamMap[floorId] = streamId;
+     return floorId;
+@@ -90,6 +91,50 @@
+ 
+   m_floorStreamMap[floorId] = streamId;
+   return floorId;
++}
++
++// Snapshot the source before locking the destination, so reciprocal assignment
++// cannot invert two map mutexes. Signalling owns the non-map SDP attributes.
++BFCPDescription::BFCPDescription(const BFCPDescription & other)
++{
++  PWaitAndSignal lock(other.m_floorStreamMutex);
++  m_floorCtrl = other.m_floorCtrl;
++  m_confID = other.m_confID;
++  m_userID = other.m_userID;
++  m_transportProto = other.m_transportProto;
++  m_floorStreamMap = other.m_floorStreamMap;
++}
++
++BFCPDescription & BFCPDescription::operator=(const BFCPDescription & other)
++{
++  if (this == &other)
++    return *this;
++  const BFCPDescription snapshot(other);
++  PWaitAndSignal lock(m_floorStreamMutex);
++  m_floorCtrl = snapshot.m_floorCtrl;
++  m_confID = snapshot.m_confID;
++  m_userID = snapshot.m_userID;
++  m_transportProto = snapshot.m_transportProto;
++  m_floorStreamMap = snapshot.m_floorStreamMap;
++  return *this;
++}
++
++BFCPDescription::FloorStreamMap BFCPDescription::GetFloorStreamMap() const
++{
++  PWaitAndSignal lock(m_floorStreamMutex);
++  return m_floorStreamMap;
++}
++
++void BFCPDescription::SetFloorStreamMap(const FloorStreamMap & map)
++{
++  PWaitAndSignal lock(m_floorStreamMutex);
++  m_floorStreamMap = map;
++}
++
++bool BFCPDescription::HasFloorID(unsigned floorID) const
++{
++  PWaitAndSignal lock(m_floorStreamMutex);
++  return m_floorStreamMap.find(floorID) != m_floorStreamMap.end();
+ }
+ 
+ 
+@@ -295,7 +340,8 @@
+   strm << "\r\n"
+           "a=confid:" << m_confID << "\r\n"
+           "a=userid:" << m_userID << "\r\n";
+-  for (FloorStreamMap::const_iterator it = m_floorStreamMap.begin(); it != m_floorStreamMap.end(); ++it) {
++  const FloorStreamMap floorStreamMap = GetFloorStreamMap();
++  for (FloorStreamMap::const_iterator it = floorStreamMap.begin(); it != floorStreamMap.end(); ++it) {
+     strm << "a=floorid:" << it->first;
+     if (it->second > 0)
+       strm << " mstrm:" << it->second;
+@@ -341,6 +387,9 @@
+       streamID = token.Mid(token.Find(':')+1).AsUnsigned();
+     }
+ 
++    // Parsing preserves the wire ID; zero is not a request to allocate a
++    // local floor here. The map mutex alone protects this literal update.
++    PWaitAndSignal lock(m_floorStreamMutex);
+     m_floorStreamMap[floorID] = streamID;
+     return;
+   }
+@@ -860,8 +909,9 @@
+ 
+ bool BFCPSession::RequestFloor(bool release)
+ {
++  const FloorStreamMap floorStreamMap = GetFloorStreamMap();
+   if (!m_clientServerStarted || m_participant == NULL ||
+-      m_participant->m_BFCPParticipant == NULL || m_floorStreamMap.empty())
++      m_participant->m_BFCPParticipant == NULL || floorStreamMap.empty())
+     return false;
+   s_bfcp_msg_event event = {}; // Local control has no received wire status.
+   if (release)
+@@ -869,7 +919,7 @@
+   // Stock SDP maps both main and presentation streams to floors. Request the
+   // dedicated presentation floor rather than whichever map entry sorts first.
+   OpalRTPConnection * connection = dynamic_cast<OpalRTPConnection *>(&m_connection);
+-  for (FloorStreamMap::const_iterator it = m_floorStreamMap.begin(); it != m_floorStreamMap.end(); ++it) {
++  for (FloorStreamMap::const_iterator it = floorStreamMap.begin(); it != floorStreamMap.end(); ++it) {
+     if (IsPresentationFloor(connection, it->second))
+       return m_participant->m_BFCPParticipant->FsmCtrlPerform(BFCP_fsm::BFCP_ACT_FloorRequest, &event);
+   }
+@@ -924,7 +974,8 @@
+ 
+ bool BFCPSession::OpenTCP(const PString & localInterface, const OpalTransportAddress & remoteAddress)
+ {
+-  if (!remoteAddress.GetIpAndPort(m_remoteIP, m_remotePort) || m_floorStreamMap.empty())
++  const FloorStreamMap floorStreamMap = GetFloorStreamMap();
++  if (!remoteAddress.GetIpAndPort(m_remoteIP, m_remotePort) || floorStreamMap.empty())
+     return false;
+   m_localIP = localInterface;
+   bool passive = m_remotePort == 0 || GetSetUpMode() == SetUpModePassive;
+@@ -939,9 +990,9 @@
+   m_clientServerStarted = false;
+   Close();
+ 
+-  FloorStreamMap::const_iterator floor = m_floorStreamMap.begin();
++  FloorStreamMap::const_iterator floor = floorStreamMap.begin();
+   OpalRTPConnection * connection = dynamic_cast<OpalRTPConnection *>(&m_connection);
+-  for (FloorStreamMap::const_iterator it = m_floorStreamMap.begin(); it != m_floorStreamMap.end(); ++it)
++  for (FloorStreamMap::const_iterator it = floorStreamMap.begin(); it != floorStreamMap.end(); ++it)
+     if (IsPresentationFloor(connection, it->second)) { floor = it; break; }
+ 
+   SetSetUpMode(passive ? SetUpModePassive : SetUpModeActive);
+@@ -987,7 +1038,8 @@
+   if (IsOpen() && GetRemoteAddress() == remoteAddress)
+     return true;
+ 
+-  if (m_floorStreamMap.empty()) {
++  const FloorStreamMap floorStreamMap = GetFloorStreamMap();
++  if (floorStreamMap.empty()) {
+     PTRACE(4, "Cannot open without floor ID");
+     return false;
+   }
+@@ -999,9 +1051,9 @@
+ 
+   Close();
+ 
+-  FloorStreamMap::const_iterator floor = m_floorStreamMap.begin();
++  FloorStreamMap::const_iterator floor = floorStreamMap.begin();
+   OpalRTPConnection * connection = dynamic_cast<OpalRTPConnection *>(&m_connection);
+-  for (FloorStreamMap::const_iterator it = m_floorStreamMap.begin(); it != m_floorStreamMap.end(); ++it) {
++  for (FloorStreamMap::const_iterator it = floorStreamMap.begin(); it != floorStreamMap.end(); ++it) {
+     if (IsPresentationFloor(connection, it->second)) {
+       floor = it;
+       break;

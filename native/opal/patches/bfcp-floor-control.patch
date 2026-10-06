@@ -1,0 +1,53 @@
+diff --git a/include/sdp/bfcpinterface.h b/include/sdp/bfcpinterface.h
+--- a/include/sdp/bfcpinterface.h
++++ b/include/sdp/bfcpinterface.h
+@@ -163,6 +163,7 @@ class BFCPSession : public OpalMediaSession, public BFCPDescription
+     virtual bool SetRemoteAddress(const OpalTransportAddress & remoteAddress, bool isMediaAddress = true);
+     virtual SDPMediaDescription * CreateSDPMediaDescription();
+     virtual OpalMediaStream * CreateMediaStream(const OpalMediaFormat & mediaFormat, unsigned sessionID, bool isSource);
++    bool RequestFloor(bool release = false);
+ 
+   protected:
+     class LibServerWrapper;
+diff --git a/src/sdp/bfcpinterface.cxx b/src/sdp/bfcpinterface.cxx
+--- a/src/sdp/bfcpinterface.cxx
++++ b/src/sdp/bfcpinterface.cxx
+@@ -37,2 +37,3 @@
+ #include <opal/endpoint.h>
++#include <rtp/rtpconn.h>
+ #include <sdp/sdp.h>
+@@ -794,6 +794,27 @@ BFCPSession::BFCPSession(const Init & init, BFCPCallback * callback)
+ }
+ 
+ 
++bool BFCPSession::RequestFloor(bool release)
++{
++  if (!m_clientServerStarted || m_participant == NULL ||
++      m_participant->m_BFCPParticipant == NULL || m_floorStreamMap.empty())
++    return false;
++  if (release)
++    return m_participant->m_BFCPParticipant->bfcp_floorRelease_participant() != -1;
++  // Stock SDP maps both main and presentation streams to floors. Request the
++  // dedicated presentation floor rather than whichever map entry sorts first.
++  OpalRTPConnection * connection = dynamic_cast<OpalRTPConnection *>(&m_connection);
++  OpalMediaSession * presentation = connection != NULL ? connection->FindSessionByMediaType(
++      OpalPresentationVideoMediaDefinition::Name()) : NULL;
++  if (presentation == NULL)
++    return false;
++  for (FloorStreamMap::const_iterator it = m_floorStreamMap.begin(); it != m_floorStreamMap.end(); ++it) {
++    if (it->second == presentation->GetSessionID())
++      return m_participant->m_BFCPParticipant->bfcp_floorRequest_participant((UINT16)it->first) != -1;
++  }
++  return false;
++}
++
+ BFCPSession::~BFCPSession()
+ {
+   PTRACE(4, "BFCPSession instance destroy.");
+@@ -903,7 +914,7 @@ bool BFCPSession::Open(const PString & localInterface, const OpalTransportAddress &
+       m_localIP.FromString(udpInterface);
+-      if (m_participant->m_BFCPParticipant->OpenTcpConnection(m_localIP.AsString(),
++      if (!m_participant->m_BFCPParticipant->OpenTcpConnection(m_localIP.AsString(),
+                                                               m_localPort + 2/* Virtual Client Port which is 2 more than that of servers*/,
+                                                               m_remoteIP.AsString(),
+                                                               m_localPort + BFCP_OVER_UDP_SOCKET_OFFSET,/* BFCP Server port*/

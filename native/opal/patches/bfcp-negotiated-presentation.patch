@@ -1,0 +1,71 @@
+diff --git a/src/sdp/bfcpinterface.cxx b/src/sdp/bfcpinterface.cxx
+--- a/src/sdp/bfcpinterface.cxx
++++ b/src/sdp/bfcpinterface.cxx
+@@ -889,19 +889,36 @@
+ 
+   m_server->StopServer();
+ 
++  FloorStreamMap::const_iterator floor = m_floorStreamMap.begin();
++  OpalRTPConnection * connection = dynamic_cast<OpalRTPConnection *>(&m_connection);
++  OpalMediaSession * presentation = connection != NULL ? connection->FindSessionByMediaType(
++      OpalPresentationVideoMediaDefinition::Name()) : NULL;
++  if (presentation != NULL) {
++    for (FloorStreamMap::const_iterator it = m_floorStreamMap.begin(); it != m_floorStreamMap.end(); ++it) {
++      if (it->second == presentation->GetSessionID()) {
++        floor = it;
++        break;
++      }
++    }
++  }
++
+   m_server->m_BFCPServer = new BFCP_Server(BFCP_MAX_CONF,
+                                            m_confID,
+                                            m_userID,
+-                                           m_floorStreamMap.begin()->first,
+-                                           m_floorStreamMap.begin()->second,
++                                           floor->first,
++                                           floor->second,
+                                            m_server,
+                                            m_transportProto);
+   m_participant->m_BFCPParticipant = new BFCP_Participant(m_confID,
+                                                           (UINT16)m_userID,
+-                                                          (UINT16)m_floorStreamMap.begin()->first,
+-                                                          (UINT16)m_floorStreamMap.begin()->second,
++                                                          (UINT16)floor->first,
++                                                          (UINT16)floor->second,
+                                                           m_participant,
+                                                           m_transportProto);
++
++  // Register negotiated remote and virtual-local users before transport callbacks.
++  m_server->m_BFCPServer->AddUser(m_userID);
++  m_server->m_BFCPServer->AddUser(LOCAL_CLIENT_USER_ID);
+ 
+   bool isPassive = m_remotePort == 0;
+   SetSetUpMode(isPassive ? SetUpModePassive : SetUpModeActive);
+@@ -933,8 +950,6 @@
+     }
+   }
+ 
+-  m_server->m_BFCPServer->AddUser(LOCAL_CLIENT_USER_ID);
+-
+   switch (m_transportProto) {
+     default:
+       PTRACE(2, "Unsupported transport");
+diff --git a/src/sdp/sdpep.cxx b/src/sdp/sdpep.cxx
+--- a/src/sdp/sdpep.cxx
++++ b/src/sdp/sdpep.cxx
+@@ -629,11 +629,12 @@
+     for (vector<bool>::size_type sessionId = 1; sessionId < sessions.size(); ++sessionId) {
+       if (sessions[sessionId]) {
+         OpalMediaSession * session = GetMediaSession(sessionId);
+-        if (session->GetMediaType() == OpalPresentationVideoMediaDefinition::Name()) {
++        if (session->GetMediaType() == OpalPresentationVideoMediaDefinition::Name() &&
++            FindSessionByMediaType(BFCPMediaDefinition::Name()) == NULL) {
+           unsigned nextSessionId = m_sessions.GetSize() + 1;
+           OpalMediaSession::Init init(*this, nextSessionId, BFCPMediaDefinition::Name(), false);
+           m_sessions.SetAt(nextSessionId, new BFCPSession(init, this));
+-          if (sessions.size() < nextSessionId)
++          if (sessions.size() <= nextSessionId)
+             sessions.resize(nextSessionId + 1);
+           sessions[nextSessionId] = true;
+           break;

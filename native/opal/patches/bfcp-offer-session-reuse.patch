@@ -1,0 +1,17 @@
+diff --git a/src/sdp/sdpep.cxx b/src/sdp/sdpep.cxx
+--- a/src/sdp/sdpep.cxx
++++ b/src/sdp/sdpep.cxx
+@@ -699,7 +699,12 @@
+     mediaSession->AddGroup(OpalMediaSession::GetBundleGroupId(), rtpStreamIndex, PString(rtpStreamIndex));
+   }
+ 
+-  if (!mediaSession->Open(GetMediaInterface(), GetRemoteMediaAddress())) {
++  // Offer construction has a signalling-host placeholder, not received BFCP SDP.
++  bool reuseBfcpSession = false;
++#if OPAL_BFCP
++  reuseBfcpSession = mediaType == BFCPMediaDefinition::Name() && mediaSession->IsOpen();
++#endif
++  if (!reuseBfcpSession && !mediaSession->Open(GetMediaInterface(), GetRemoteMediaAddress())) {
+     PTRACE(1, "Could not open RTP session " << sessionId << " for media type " << mediaType);
+     return false;
+   }

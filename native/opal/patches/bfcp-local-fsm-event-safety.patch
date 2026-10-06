@@ -1,0 +1,45 @@
+diff --git a/src/sdp/bfcpinterface.cxx b/src/sdp/bfcpinterface.cxx
+--- a/src/sdp/bfcpinterface.cxx
++++ b/src/sdp/bfcpinterface.cxx
+@@ -862,14 +862,15 @@
+   if (!m_clientServerStarted || m_participant == NULL ||
+       m_participant->m_BFCPParticipant == NULL || m_floorStreamMap.empty())
+     return false;
++  s_bfcp_msg_event event = {}; // Local control has no received wire status.
+   if (release)
+-    return m_participant->m_BFCPParticipant->FsmCtrlPerform(BFCP_fsm::BFCP_ACT_FloorRelease);
++    return m_participant->m_BFCPParticipant->FsmCtrlPerform(BFCP_fsm::BFCP_ACT_FloorRelease, &event);
+   // Stock SDP maps both main and presentation streams to floors. Request the
+   // dedicated presentation floor rather than whichever map entry sorts first.
+   OpalRTPConnection * connection = dynamic_cast<OpalRTPConnection *>(&m_connection);
+   for (FloorStreamMap::const_iterator it = m_floorStreamMap.begin(); it != m_floorStreamMap.end(); ++it) {
+     if (IsPresentationFloor(connection, it->second))
+-      return m_participant->m_BFCPParticipant->FsmCtrlPerform(BFCP_fsm::BFCP_ACT_FloorRequest);
++      return m_participant->m_BFCPParticipant->FsmCtrlPerform(BFCP_fsm::BFCP_ACT_FloorRequest, &event);
+   }
+   return false;
+ }
+diff --git a/src/sdp/BFCP/libbfcp/BFCP_fsm.cpp b/src/sdp/BFCP/libbfcp/BFCP_fsm.cpp
+--- a/src/sdp/BFCP/libbfcp/BFCP_fsm.cpp
++++ b/src/sdp/BFCP/libbfcp/BFCP_fsm.cpp
+@@ -639,7 +639,7 @@
+         if ( Status ) 
+ 	{
+ 	    Log(INF,"FSM [%s] action sucessful. Current state [%s] => new state [%s]",
+-	        getBfcpFsmAct(m_bfcpFsmSt), getBfcpFsmAct(new_bfcpFsmSt) ); 
++	        m_name, getBfcpFsmAct(m_bfcpFsmSt), getBfcpFsmAct(new_bfcpFsmSt) ); 
+             m_bfcpFsmSt = new_bfcpFsmSt ;
+             BFCPFSM_UpdatesBfcpFsmEvent( p_bfcp_evt , p_evt , m_bfcpFsmSt );
+         }
+@@ -647,9 +647,9 @@
+ 	{
+ 	    if( strcmp(getBfcpFsmAct(p_evt), "FloorStatusGranted") != 0 )
+             Log(INF,"FSM [%s] event %s and status %s NOT successful, state will not change",
+-                    getBfcpFsmAct(m_bfcpFsmSt), getBfcpFsmAct(p_evt), getBfcpStatus(p_bfcp_evt->Status) );
++                    getBfcpFsmAct(m_bfcpFsmSt), getBfcpFsmAct(p_evt), p_bfcp_evt ? getBfcpStatus(p_bfcp_evt->Status) : "no wire status" );
+         else {
+-	    	Log(INF,"Providing callback for event %s and status %s ", getBfcpFsmAct(p_evt), getBfcpStatus(p_bfcp_evt->Status) );
++	    	Log(INF,"Providing callback for event %s and status %s ", getBfcpFsmAct(p_evt), p_bfcp_evt ? getBfcpStatus(p_bfcp_evt->Status) : "no wire status" );
+ 	    	BFCPFSM_UpdatesBfcpFsmEvent( p_bfcp_evt , p_evt , m_bfcpFsmSt );
+ 	    }
+ 	}

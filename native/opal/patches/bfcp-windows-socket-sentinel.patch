@@ -1,0 +1,12 @@
+diff --git a/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpsrv/bfcp_server.cpp b/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpsrv/bfcp_server.cpp
+--- a/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpsrv/bfcp_server.cpp
++++ b/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpsrv/bfcp_server.cpp
+@@ -778,7 +778,7 @@
+ 		{
+ 		    if ( u->userID == userID)
+ 		    {
+-			if (sockfd < 0 || u->sockFd < 0)
++			if (sockfd == BFCP_INVALID_SOCKET || u->sockFd == BFCP_INVALID_SOCKET)
+ 			{
+ 				/* we do not check sockfd consistency in case of unasigned sockfd
+ 				 * or if we are asked not to check */

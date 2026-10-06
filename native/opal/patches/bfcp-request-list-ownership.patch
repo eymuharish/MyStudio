@@ -1,0 +1,30 @@
+diff --git a/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp b/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp
+--- a/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp
++++ b/src/sdp/BFCP/libbfcp/bfcpsrvctl/bfcpcli/bfcp_participant.cpp
+@@ -452,11 +452,12 @@
+         floor_list = tmp_floor ;
+ 
+     int error = bfcp_floorRequest_participant(participant, beneficiaryID, priority, floor_list, NULL);
+-    if((error == -1) && (floor_list != NULL)) {
+-        /* Free the request */
+-        Log(ERR,"Error sending the message: do the floors in the request exist? ");
++    if(error == -1)
++        Log(ERR,"Error sending the floor request.");
++    // This wrapper owns the request list on success and failure alike.
++    if(floor_list != NULL)
+         remove_floor_list(floor_list);
+-    } 
++    
+     return error ;
+ }
+ 
+@@ -551,8 +552,7 @@
+ 		return -1;
+ 	}
+ 
+-	remove_floor_list(list_floors);
+-    list_floors = NULL ;
++	// list_floors is borrowed from the wrapper; it releases the list once.
+ 	bfcp_mutex_unlock(count_mutex);
+ 
+ 	/* Send the message to the FCS */

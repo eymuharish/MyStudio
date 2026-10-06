@@ -1,0 +1,29 @@
+diff --git a/src/opal/call.cxx b/src/opal/call.cxx
+index 3222b05..3dfe6eb 100644
+--- a/src/opal/call.cxx
++++ b/src/opal/call.cxx
+@@ -1174,6 +1174,13 @@ bool OpalCall::EnumerateConnections(PSafeArray<OpalConnection>::iterator & it,
+                                     PSafetyMode mode,
+                                     const OpalConnection * skipConnection) const
+ {
++  // A snapshot may outlive removal of one of its connections. Copy the safe
++  // reference without dereferencing an iterator whose reference has expired.
++  struct ReferencedIterator : PSafeArray<OpalConnection>::iterator {
++    ReferencedIterator(const PSafeArray<OpalConnection>::iterator & source)
++      : PSafeArray<OpalConnection>::iterator(source) { }
++    void AssignTo(PSafePtr<OpalConnection> & target) const { target = m_pointer; }
++  };
+   PSafeArray<OpalConnection>& connectionsActive = const_cast<PSafeArray<OpalConnection> &>(m_connectionsActive);
+   if (it == connectionsActive.end())
+     it = connectionsActive.begin();
+@@ -1183,8 +1190,8 @@ bool OpalCall::EnumerateConnections(PSafeArray<OpalConnection>::iterator & it,
+   }
+ 
+   while (it != connectionsActive.end()) {
+-    connection = &*it;
+-    if (connection != skipConnection &&
++    ReferencedIterator(it).AssignTo(connection);
++    if (connection != NULL && connection != skipConnection &&
+         connection->GetPhase() <= OpalConnection::EstablishedPhase &&
+         connection.SetSafetyMode(mode))
+       return true;

@@ -1,0 +1,103 @@
+diff --git a/include/sdp/bfcpinterface.h b/include/sdp/bfcpinterface.h
+--- a/include/sdp/bfcpinterface.h
++++ b/include/sdp/bfcpinterface.h
+@@ -178,8 +178,10 @@
+     virtual SDPMediaDescription * CreateSDPMediaDescription();
+     virtual OpalMediaStream * CreateMediaStream(const OpalMediaFormat & mediaFormat, unsigned sessionID, bool isSource);
+     bool RequestFloor(bool release = false);
++    unsigned GetLocalParticipantUserID() const;
+ 
+   protected:
++    bool OpenTCP(const PString & localInterface, const OpalTransportAddress & remoteAddress);
+     class LibServerWrapper;
+     friend class LibServerWrapper;
+     LibServerWrapper  * m_server;
+diff --git a/src/sdp/bfcpinterface.cxx b/src/sdp/bfcpinterface.cxx
+--- a/src/sdp/bfcpinterface.cxx
++++ b/src/sdp/bfcpinterface.cxx
+@@ -251,6 +251,8 @@
+     return false;
+ 
+   *static_cast<BFCPDescription *>(this) = *bfcpSession;
++  if (m_transportProto == BFCP_OVER_TCP)
++    m_floorCtrl = bfcpSession->GetSetUpMode() == OpalMediaSession::SetUpModePassive ? FloorCtrlServerOnly : FloorCtrlClientOnly;
+   return true;
+ }
+ 
+@@ -889,8 +891,76 @@
+ }
+ 
+ 
++unsigned BFCPSession::GetLocalParticipantUserID() const
++{
++  return m_transportProto == BFCP_OVER_TCP && m_server->m_BFCPServer != NULL ? LOCAL_CLIENT_USER_ID : m_userID;
++}
++
++bool BFCPSession::OpenTCP(const PString & localInterface, const OpalTransportAddress & remoteAddress)
++{
++  if (!remoteAddress.GetIpAndPort(m_remoteIP, m_remotePort) || m_floorStreamMap.empty())
++    return false;
++  m_localIP = localInterface;
++  bool passive = m_remotePort == 0 || GetSetUpMode() == SetUpModePassive;
++  if (m_clientServerStarted) {
++    if (passive && m_server->m_BFCPServer != NULL)
++      return true;
++    if (!passive && m_server->m_BFCPServer == NULL && m_participant->m_BFCPParticipant != NULL &&
++        m_remoteIP.AsString() == m_participant->m_BFCPParticipant->getRemoteAdress() &&
++        m_remotePort == m_participant->m_BFCPParticipant->getRemotePort())
++      return true;
++  }
++  m_clientServerStarted = false;
++  m_participant->StopParticipant();
++  m_server->StopServer();
++
++  FloorStreamMap::const_iterator floor = m_floorStreamMap.begin();
++  OpalRTPConnection * connection = dynamic_cast<OpalRTPConnection *>(&m_connection);
++  OpalMediaSession * presentation = connection != NULL ? connection->FindSessionByMediaType(
++      OpalPresentationVideoMediaDefinition::Name()) : NULL;
++  if (presentation != NULL)
++    for (FloorStreamMap::const_iterator it = m_floorStreamMap.begin(); it != m_floorStreamMap.end(); ++it)
++      if (it->second == presentation->GetSessionID()) { floor = it; break; }
++
++  SetSetUpMode(passive ? SetUpModePassive : SetUpModeActive);
++  m_connectionMode = ConnectionNew;
++  m_floorCtrl = passive ? FloorCtrlServerOnly : FloorCtrlClientOnly;
++  if (passive) {
++    m_server->m_BFCPServer = new BFCP_Server(BFCP_MAX_CONF, m_confID, m_userID,
++        floor->first, floor->second, m_server, BFCP_OVER_TCP);
++    m_server->m_BFCPServer->AddUser(m_userID);
++    m_server->m_BFCPServer->AddUser(LOCAL_CLIENT_USER_ID);
++    const PIPSocket::PortRange & ports = m_connection.GetEndPoint().GetManager().GetTCPPortRange();
++    m_localPort = ports.GetBase() != 0 ? ports.GetBase() : 6000;
++    while (!m_server->m_BFCPServer->OpenTcpConnection(m_localIP.AsString(), m_localPort,
++        m_remoteIP.AsString(), 0, BFCPConnectionRole::PASSIVE)) {
++      if (++m_localPort == 0 || (ports.GetMax() != 0 && m_localPort > ports.GetMax()))
++        return false;
++    }
++  }
++  else
++    m_localPort = 9; // RFC4145 active SDP port: valid and never a remote connect target.
++
++  m_participant->m_BFCPParticipant = new BFCP_Participant(m_confID,
++      passive ? LOCAL_CLIENT_USER_ID : (UINT16)m_userID, (UINT16)floor->first,
++      (UINT16)floor->second, m_participant, BFCP_OVER_TCP);
++  m_participant->m_keepAliveTimer.RunContinuous(5000);
++  // Exactly one FCS listens. Its own participant uses a distinct active socket;
++  // the active peer participant connects to that same negotiated FCS.
++  PString target = passive ? m_localIP.AsString() : m_remoteIP.AsString();
++  if (passive && (m_localIP.IsAny() || !m_localIP.IsValid()))
++    target = "127.0.0.1";
++  if (!m_participant->m_BFCPParticipant->OpenTcpConnection(m_localIP.AsString(), 0,
++      target, passive ? m_localPort : m_remotePort, BFCPConnectionRole::ACTIVE))
++    return false;
++  m_clientServerStarted = true;
++  return true;
++}
++
+ bool BFCPSession::Open(const PString & localInterface, const OpalTransportAddress & remoteAddress)
+ {
++  if (m_transportProto == BFCP_OVER_TCP)
++    return OpenTCP(localInterface, remoteAddress);
+   // Before we start client, we must have server. So, let's create one.
+   if (m_clientServerStarted && GetRemoteAddress() == remoteAddress)
+     return true;

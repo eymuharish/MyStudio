@@ -1,0 +1,48 @@
+cmake_minimum_required(VERSION 3.24)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  project(MyStudioOpalAac LANGUAGES CXX)
+  enable_testing()
+endif()
+set(OPAL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/opal" CACHE PATH "Matched OPAL source")
+set(TELESTUDIO_AAC_LD_INSTALL "${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/media/aac-ld" CACHE PATH "Verified FDK-AAC install")
+option(MYSTUDIO_BUILD_AAC_PLUGIN "Build the OPAL AAC plugin" ON)
+if(MYSTUDIO_BUILD_AAC_PLUGIN)
+  if(NOT EXISTS "${OPAL_SOURCE_DIR}/include/codec/opalplugin.h" OR
+     NOT EXISTS "${TELESTUDIO_AAC_LD_INSTALL}/include/fdk-aac/aacenc_lib.h" OR
+     NOT EXISTS "${TELESTUDIO_AAC_LD_INSTALL}/lib/fdk-aac.lib")
+    message(FATAL_ERROR "OPAL codec API and verified FDK-AAC headers/archive are required")
+  endif()
+  add_library(mystudio_opal_aac MODULE OpalAacPlugin.cpp ../../media/src/AacLdCodec.cpp ../../media/src/AacLdPayload.cpp)
+  target_compile_features(mystudio_opal_aac PRIVATE cxx_std_20)
+  target_compile_definitions(mystudio_opal_aac PRIVATE PLUGIN_CODEC_DLL_EXPORTS NOMINMAX)
+  target_include_directories(mystudio_opal_aac PRIVATE "${OPAL_SOURCE_DIR}/include" ../../media/include "${TELESTUDIO_AAC_LD_INSTALL}/include/fdk-aac")
+  target_link_libraries(mystudio_opal_aac PRIVATE "${TELESTUDIO_AAC_LD_INSTALL}/lib/fdk-aac.lib")
+  set_target_properties(mystudio_opal_aac PROPERTIES PREFIX "")
+endif()
+add_executable(opal_aac_plugin_tests OpalAacPluginTests.cpp)
+target_compile_features(opal_aac_plugin_tests PRIVATE cxx_std_20)
+target_compile_definitions(opal_aac_plugin_tests PRIVATE NOMINMAX)
+target_include_directories(opal_aac_plugin_tests PRIVATE "${OPAL_SOURCE_DIR}/include")
+if(MYSTUDIO_BUILD_AAC_PLUGIN)
+  add_dependencies(opal_aac_plugin_tests mystudio_opal_aac)
+  add_test(NAME opal_aac_plugin COMMAND opal_aac_plugin_tests "$<TARGET_FILE:mystudio_opal_aac>")
+  if(TARGET opal_sdk)
+    add_library(opal_aac_handler STATIC OpalAacHandler.cpp)
+    target_link_libraries(opal_aac_handler PUBLIC opal_sdk)
+    target_include_directories(opal_aac_handler PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_executable(opal_aac_core_tests OpalAacCoreTests.cpp)
+    target_include_directories(opal_aac_core_tests PRIVATE ../../media/include)
+    target_link_libraries(opal_aac_core_tests PRIVATE opal_aac_handler)
+    add_dependencies(opal_aac_core_tests mystudio_opal_aac)
+    add_test(NAME opal_aac_core COMMAND opal_aac_core_tests "$<TARGET_FILE:mystudio_opal_aac>" "${CMAKE_BINARY_DIR}/$<CONFIG>/plugins/G722_ptplugin.dll")
+    # Only the core test loads SDK DLLs. Keep its runtime search path local to
+    # CTest, including the parent app-local deployment and dependency SDKs.
+    get_filename_component(OPAL_AAC_OPAL_RUNTIME_DIR "${OPAL_LIBRARY}" DIRECTORY)
+    get_filename_component(OPAL_AAC_PTLIB_RUNTIME_DIR "${PTLIB_LIBRARY}" DIRECTORY)
+    set_property(TEST opal_aac_core PROPERTY ENVIRONMENT_MODIFICATION
+      "PATH=path_list_prepend:${CMAKE_BINARY_DIR}/$<CONFIG>"
+      "PATH=path_list_prepend:${OPAL_AAC_OPAL_RUNTIME_DIR}"
+      "PATH=path_list_prepend:${OPAL_AAC_PTLIB_RUNTIME_DIR}"
+      "PATH=path_list_prepend:${PTLIB_SOURCE_DIR}/../openssl/bin")
+  endif()
+endif()
