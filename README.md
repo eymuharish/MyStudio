@@ -27,6 +27,14 @@
 | إصدارات الاعتمادات والبصمات المسجلة | [بيانات الاعتمادات](docs/opal-dependencies.json) |
 | المحرك الأصلي واختبارات الوسائط | [دليل OPAL](native/opal/README.md) |
 
+## تحميل النسخة المحمولة
+
+[تنزيل MyStudio 2.2.0 لنظام Windows x64 — ملف ZIP](https://github.com/eymuharish/MyStudio/releases/download/v2.2.0/MyStudio-v2.2.0-portable-win-x64.zip)
+
+الحزمة محدثة بتاريخ **6 أكتوبر 2026**، وتتضمن إعدادات الصوت والمايك الحالية وإصلاح الحفاظ على مستوى صوت القاعة أثناء مشاركة صوت الجهاز. فك الضغط ثم شغّل `MyStudio.exe` مع إبقاء مجلد `appfiles` بجانبه.
+
+[صفحة الإصدار](https://github.com/eymuharish/MyStudio/releases/tag/v2.2.0) · [جميع الإصدارات](https://github.com/eymuharish/MyStudio/releases)
+
 ## التشغيل
 
 هذا المستودع يحتوي **ملفات المصدر**؛ لا يحتوي حاليًا على `MyStudio.exe` أو مكتبات التشغيل المجمّعة. تشغيل البرنامج يحتاج حزمة Windows مبنية مسبقًا، أو بناء المشروع بالمتطلبات الموضحة في دليل المطور.
